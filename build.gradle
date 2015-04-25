@@ -1,0 +1,44 @@
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'eclipse'
+
+sourceCompatibility = 1.8
+version = '1.0'
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Gradle Quickstart', 'Implementation-Version': version
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+//    compile group: 'io.netty', name: 'netty-all', version: '5.+'
+//    compile 'org.sweble.wikitext:swc-parser-lazy:2.0.0'
+//    compile 'com.google.guava:guava-gwt:18.0'
+//    compile group: 'org.sweble.wikitext', name: 'sweble-wikitext', version: '2.0.0'
+//    compile 'javax.json:javax.json-api:1.0'
+//    compile 'com.google.code.gson:gson:2.+'
+//    compile 'org.glassfish:json:1.0.4'
+//    compile 'com.google.guava:guava:18.0'
+    compile 'commons-io:commons-io:2.+'
+    compile 'com.googlecode.json-simple:json-simple:1.+'
+    compile 'org.jsoup:jsoup:1.+'
+
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+}
+
+test {
+    systemProperties 'property': 'value'
+}
+
+uploadArchives {
+    repositories {
+       flatDir {
+           dirs 'repos'
+       }
+    }
+}
