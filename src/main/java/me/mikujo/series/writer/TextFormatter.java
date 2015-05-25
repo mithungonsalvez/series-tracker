@@ -97,16 +97,21 @@ public class TextFormatter implements IFormatter {
     private void write(String url, String title, List<List<String[]>> seasons, int seasonIdx, int episodeIdx,
             SimpleDateFormat sdf) throws IOException {
 
-        writeSeriesHeader(url, title);
-        write(seasons, seasonIdx, episodeIdx, sdf);
+        try {
+            writeSeriesHeader(url, title);
+            write(seasons, seasonIdx, episodeIdx, sdf);
 
-        episodeIdx++;
-        for (int i = seasonIdx; i < seasons.size(); i++) {
-            for (int j = episodeIdx; j < seasons.get(i).size(); j++) {
-                writer.write(FILLER_32);
-                write(seasons, i, j, sdf);
+            episodeIdx++;
+            for (int i = seasonIdx; i < seasons.size(); i++) {
+                for (int j = episodeIdx; j < seasons.get(i).size(); j++) {
+                    writer.write(FILLER_32);
+                    write(seasons, i, j, sdf);
+                }
+                episodeIdx = 0;
             }
-            episodeIdx = 0;
+        } catch (Exception ex) {
+            System.err.println("Error for Title [" + title + "], URL [" + url + "]");
+            throw ex;
         }
     }
 
@@ -130,7 +135,6 @@ public class TextFormatter implements IFormatter {
      * @throws IOException If there is a problem while write the data
      */
     private void write(List<List<String[]>> seasons, int seasonIdx, int episodeIdx, SimpleDateFormat sdf) throws IOException {
-
         writeEpisode(seasonIdx + 1, episodeIdx + 1);
         String[] episode = seasons.get(seasonIdx).get(episodeIdx);
         String rawDate = episode[episode.length - 1]; // TODO : Fix this hard coding to fetch the last item
@@ -159,7 +163,7 @@ public class TextFormatter implements IFormatter {
      * @throws IOException If parsing fails
      */
     private String parseDate(String rawDate, SimpleDateFormat sdf) throws IOException {
-        if (rawDate.equals("TBA") || rawDate.equals("TBD")) {
+        if (rawDate.isEmpty() || rawDate.equals("TBA") || rawDate.equals("TBD")) {
             return DATE_IS_UNKNOWN;
         }
         try {

@@ -197,7 +197,7 @@ public class WikiParser {
                 chars[i] = ' '; // normalize the space
             }
         }
-        return String.valueOf(chars);
+        return String.valueOf(chars).trim();
     }
 
     /**
@@ -212,8 +212,9 @@ public class WikiParser {
         int count = 0;
         while (count < limit) {
             Element element = parent.child(childIndex + count);
+            String role = element.attr("role");
             String tagName = element.tagName().toLowerCase();
-            if (tagName.equals("table")) {
+            if (tagName.equals("table") && !"presentation".equals(role)) {
                 elTable = element;
                 break;
             } else if (tagName.charAt(0) == 'h' && tagName.length() == 2) { // encountered a heading tag, so break
