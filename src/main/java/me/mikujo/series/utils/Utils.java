@@ -43,6 +43,7 @@ public class Utils {
      * @throws IOException If something goes wrong
      */
     public static Path fetchUrl(String title, String strUrl, String dirId) throws IOException {
+        System.out.println("Fetching: " + title + " Url: " + strUrl);
         Path cacheDir = Paths.get(".cache", dirId);
         Files.createDirectories(cacheDir);
 
@@ -78,7 +79,11 @@ public class Utils {
             Files.copy(inputStream, cacheFile, StandardCopyOption.REPLACE_EXISTING);
         }
         String lastModified = connection.getHeaderField("Last-Modified");
-        Files.write(cacheFileDate, lastModified.getBytes());
+        if (lastModified == null) {
+            System.out.println("Last Modified time not available, unable to cache");
+        } else {
+            Files.write(cacheFileDate, lastModified.getBytes());
+        }
     }
 
     /**

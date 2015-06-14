@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import me.mikujo.series.utils.FormatDef;
 import me.mikujo.series.utils.Utils;
 import me.mikujo.series.writer.IFormatter;
 
@@ -28,7 +29,7 @@ import org.jsoup.select.Elements;
 public class WikiParser {
 
     /** Prefix for english wikipedia pages */
-    private static final String WIKI_PREFIX = "http://en.wikipedia.org/wiki/";
+    private static final String WIKI_PREFIX = "https://en.wikipedia.org/wiki/";
 
     /** Default date format example: (2015-04-02) */
     private static final String DEFAULT_DATE_FORMAT = "MMMM dddd, yyyy (yyyy-M-dd)";
@@ -47,36 +48,39 @@ public class WikiParser {
     /**
      * Parse the provided series
      * @param series Series to parse
+     * @param formatDef contains format information to extract the data
      * @param writer Writer interface
      * @throws IOException If something goes wrong while processing
      */
-    public static void parse(Map<String, Object> series, IFormatter writer) throws IOException {
-        PARSERS.get().process(series, writer);
+    public static void parse(Map<String, Object> series, FormatDef formatDef, IFormatter writer) throws IOException {
+        PARSERS.get().process(series, formatDef, writer);
     }
 
     /**
      * Process the series and return the data
      * @param series Series data to process
+     * @param formatDef contains format information to extract the data
      * @param writer Writer instance
      * @throws IOException If something goes wrong while reading the data
      */
-    private void process(Map<String, Object> series, IFormatter writer) throws IOException {
+    private void process(Map<String, Object> series, FormatDef formatDef, IFormatter writer) throws IOException {
         String imdbId = (String) series.get(Keyz.ID);
-        String title = Utils.cast(Utils.readOmdbJSON(imdbId).get("Title"));
+        String title = (String) Utils.readOmdbJSON(imdbId).get("Title");
         String page = (String) series.get(Keyz.PAGE);
-        String tocId = (String) series.get(Keyz.TOC_ID);
-        String epClz = (String) series.get(Keyz.EPISODES_LINK);
-        String rowClass = (String) series.get(Keyz.TABLE_ROW_CLZ);
         String watched = (String) series.get(Keyz.WATCHED);
-        String dateFormat = (String) series.get(Keyz.DATE_FORMAT);
+
+        String tocId = (String) formatDef.get(Keyz.TOC_ID);
+        String epClz = (String) formatDef.get(Keyz.EPISODES_LINK);
+        String rowClass = (String) formatDef.get(Keyz.TABLE_ROW_CLZ);
+        String dateFormat = (String) formatDef.getOptional(Keyz.DATE_FORMAT);
         if (dateFormat == null) {
             dateFormat = DEFAULT_DATE_FORMAT;
         }
 
         SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
 
-        int episodeTitle = (int) ((Long) series.get(Keyz.TABLE_TITLE)).longValue();
-        int episodeAirDate = (int) ((Long) series.get(Keyz.TABLE_AIRDATE)).longValue();
+        int episodeTitle = (int) ((Long) formatDef.get(Keyz.TABLE_TITLE)).longValue();
+        int episodeAirDate = (int) ((Long) formatDef.get(Keyz.TABLE_AIRDATE)).longValue();
 
         int[] cols = { episodeTitle, episodeAirDate };
         int[] seasonEpisode = Utils.parseWatched(watched);
@@ -84,8 +88,9 @@ public class WikiParser {
         String strUrl = WIKI_PREFIX + page;
         Path file = Utils.fetchUrl(title, strUrl, "wiki");
         try (InputStream inputStream = Files.newInputStream(file)) {
-            // TODO : We can use the season/episode as input for parse to avoid storing unwanted episodes
             List<List<String[]>> list = parse(inputStream, strUrl, title, tocId, epClz, rowClass, cols);
+            // TODO : Save this list into a separate cache per series
+
             writer.write(strUrl, title, list, seasonEpisode, sdf);
         }
     }
@@ -107,7 +112,7 @@ public class WikiParser {
         List<List<String[]>> allSeasons = new ArrayList<>();
         Document doc = Jsoup.parse(in, StandardCharsets.UTF_8.name(), baseUrl);
         // get the table of contents which will help us to find the class names which have episodes tables list
-        String query = new StringBuilder(32).append('#').append(tocId).append(" a[href=").append(epClz).append("]")
+        String query = new StringBuilder(32).append('#').append(tocId).append(" a[href=").append(epClz).append(']')
                 .toString();
         Elements tocEpisodesLst = doc.select(query);
         if (tocEpisodesLst.size() == 0) {
@@ -118,7 +123,6 @@ public class WikiParser {
         Elements seasonIds = tocEpisodes.parent().select("ul > li > a");
 
         if (seasonIds.size() == 0) {
-            System.out.println("Seasons not found for [" + title + "], trying alternate approach");
             // two possibilities: 1. First season 2. This wiki page does not follow our standard :(
             // since we are optimistic, try fetching the 'Episodes' and seeing if we are right
             List<String[]> season = processSeason(tocEpisodes, doc, title, 1, rowClass, columns);
