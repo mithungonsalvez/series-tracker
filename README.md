@@ -1,2 +1,3 @@
 # series-tracker
-Read data of series from the web and helps you extract bits and pieces.
+Read information regarding T.V series from the web and helps you extract bits and pieces.
+

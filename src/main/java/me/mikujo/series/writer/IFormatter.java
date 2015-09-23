@@ -6,9 +6,10 @@ package me.mikujo.series.writer;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
+
+import me.mikujo.series.Series;
 
 /**
  * Writer interface, to write data in different formats
@@ -18,15 +19,10 @@ public interface IFormatter {
 
     /**
      * Post process the list and prepare the final output
-     * @param url URL
-     * @param title Title of the series
-     * @param seasons List that has been fetched from the URL
-     * @param seasonEpisode Episode which was watched in the appropriate season
-     * @param sdf Date formatter to parse the date of the wiki
+     * @param series Series that have to be written
      * @throws IOException If there is a problem while write the data
      */
-    public void write(String url, String title, List<List<String[]>> seasons, int[] seasonEpisode, SimpleDateFormat sdf)
-            throws IOException;
+    void write(Series series) throws IOException;
 
     /**
      * Ensure that the list has the required size

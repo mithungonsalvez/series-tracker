@@ -4,6 +4,9 @@
 
 package me.mikujo.series.utils;
 
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -12,14 +15,15 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Map;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.Year;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.Temporal;
+import java.time.temporal.TemporalAccessor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 /**
  * Utilities to help with doing some of our work
@@ -27,37 +31,46 @@ import org.json.simple.parser.ParseException;
  */
 public class Utils {
 
-    /** OMDB Base URL */
-    private static final String OMDB_URL = "http://www.omdbapi.com/?r=json&i=";
-
     /** Pattern to match season and episode */
     private static final Pattern WATCHED_PATTERN = Pattern.compile("S(\\d+)E(\\d+)", Pattern.CASE_INSENSITIVE);
+
+    /** Date time formatter instances that are the default patterns that are found */
+    public static final DateTimeFormatter[] DATE_TIME_FORMATTERS = {
+            DateTimeFormatter.ofPattern("yyyy-M-dd"),
+            DateTimeFormatter.ofPattern("MMMM d, yyyy"),
+    };
+
+    /** Only contains patters for year */
+    public static final DateTimeFormatter YEAR_ONLY = DateTimeFormatter.ofPattern("yyyy");
 
     /**
      * Fetch the URL as specified by the String URL and return the saved copy<br/>
      * If the URL contents have not changed, then fetch it from the cache
      * @param title Title of the URL
      * @param strUrl URL in string form
-     * @param dirId Directory name where the cache should be created
+     * @param outDir Directory where the data should be created created
+     * @param offline Use cached data if available, if data is not available, then connect and fetch data
      * @return Path containing the URL contents
      * @throws IOException If something goes wrong
      */
-    public static Path fetchUrl(String title, String strUrl, String dirId) throws IOException {
+    public static Path fetchUrl(String title, String strUrl, Path outDir, boolean offline) throws IOException {
         System.out.println("Fetching: " + title + " Url: " + strUrl);
-        Path cacheDir = Paths.get(".cache", dirId);
-        Files.createDirectories(cacheDir);
 
-        Path cacheFile = cacheDir.resolve(title);
-        Path cacheFileDate = cacheDir.resolve(title + "_date");
+        Path cacheFile = outDir.resolve(title);
+        Path cacheFileDate = outDir.resolve(title + "_date");
+
+        boolean exists = Files.exists(cacheFile) && Files.exists(cacheFileDate);
+        if (exists && offline) {
+            return cacheFile;
+        }
+
         URL url = new URL(strUrl);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-        if (Files.exists(cacheFile) && Files.exists(cacheFileDate)) {
+        if (exists) {
             String dateValue = Files.readAllLines(cacheFileDate).get(0);
             connection.addRequestProperty("If-Modified-Since", dateValue);
 
-            if (connection.getResponseCode() == 304) { // not modified
-                // System.out.println("Using cached file");
-            } else { // modified since last visit, so cache the new data
+            if (connection.getResponseCode() != 304) { // modified since last visit, so cache the new data
                 writeFiles(connection, cacheFile, cacheFileDate);
             }
         } else {
@@ -94,31 +107,10 @@ public class Utils {
     public static int[] parseWatched(String watched) {
         Matcher matcher = WATCHED_PATTERN.matcher(watched);
         if (matcher.matches()) {
-            return new int[] { Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2)) };
+            return new int[]{Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2))};
         } else {
             throw new IllegalArgumentException("Provided input indicating 'watched' [" + watched
                     + "] does not match valid format");
-        }
-    }
-
-    /**
-     * Fetches the IMDB title for the provided IMDB ID from the OMDB-API
-     * @param imdbId IMDB Id
-     * @return Name for the required IMDB Id
-     * @throws IOException If fetching the data fails
-     */
-    public static Map<Object, Object> readOmdbJSON(String imdbId) throws IOException {
-        Path cacheDir = Paths.get(".cache");
-        Path cacheFile = cacheDir.resolve(imdbId);
-        if (Files.exists(cacheFile)) {
-            return readData(cacheFile);
-        } else {
-            Files.createDirectories(cacheDir);
-            URL url = new URL(OMDB_URL + imdbId);
-            try (InputStream rdr = url.openConnection().getInputStream()) {
-                Files.copy(rdr, cacheFile);
-                return cast(readData(cacheFile));
-            }
         }
     }
 
@@ -147,4 +139,41 @@ public class Utils {
     public static <T> T cast(Object input) {
         return (T) input;
     }
+
+    /**
+     * Parse the raw string date using the date time formatter
+     * @param episodeAiredDate Raw episode date
+     * @param dateFormats Formats
+     * @return Instant or null
+     */
+    public static Temporal parseDate(String episodeAiredDate, DateTimeFormatter... dateFormats) {
+        if (episodeAiredDate.length() >= 4) { // TODO : Think of a better way than this to eliminate illegal dates
+            if (dateFormats == null || (dateFormats.length > 0 && dateFormats[0] == null)) {
+                dateFormats = Utils.DATE_TIME_FORMATTERS;
+            }
+
+            String msg = null;
+            for (DateTimeFormatter dateFormat : dateFormats) {
+                try {
+                    TemporalAccessor accessor = dateFormat.parse(episodeAiredDate);
+                    return LocalDate.from(accessor);
+                } catch (DateTimeException ex) {
+                    msg = ex.getMessage();
+                }
+            }
+
+            // TODO : make this generic, this method sucks
+            try {
+                TemporalAccessor accessor = Utils.YEAR_ONLY.parse(episodeAiredDate);
+                return Year.from(accessor);
+            } catch (DateTimeException ex) {
+
+            }
+
+            System.err.println(msg);
+        }
+
+        return null;
+    }
+
 }

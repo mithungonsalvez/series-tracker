@@ -42,7 +42,7 @@ public class FormatDef {
     public Object get(String key) throws IllegalArgumentException {
         Object value = getOptional(key);
         if (value == null) {
-            throw new IllegalArgumentException("No value found for key [" + key + "], in definiton [" + this.id + "]");
+            throw new IllegalArgumentException("No value found for key [" + key + "], in definition [" + this.id + "]");
         }
         return value;
     }

@@ -1,7 +1,12 @@
 /build
 /bin
+/gradle
+/gradlew*
+/SeriesTracker.iml
+/SeriesTracker.jar
 /.settings
 /.project
 /.classpath
 /.cache
 /.gradle
+/.idea/
