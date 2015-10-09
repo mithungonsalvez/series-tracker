@@ -44,17 +44,15 @@ public class Episode implements Comparable<Episode> {
 
     @Override
     public int compareTo(Episode iEpisode) {
-        if (this.date == null && iEpisode.date == null) {
-            return this.title.compareTo(iEpisode.title);
-        }
-
-        if (this.date == null) {
+        if (this.date != null && iEpisode.date != null) {
+            return toLocalDate(this.date).compareTo(toLocalDate(iEpisode.date));
+        } else if (this.date == null) {
             return 1;
         } else if (iEpisode.date == null) {
             return -1;
         }
 
-        return toLocalDate(this.date).compareTo(toLocalDate(iEpisode.date));
+        return 0;
     }
 
     /**

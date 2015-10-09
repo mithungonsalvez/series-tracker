@@ -131,16 +131,6 @@ public class Utils {
     }
 
     /**
-     * Cast the object to the required type
-     * @param input Input to be cast
-     * @return Input that is cast
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> T cast(Object input) {
-        return (T) input;
-    }
-
-    /**
      * Parse the raw string date using the date time formatter
      * @param episodeAiredDate Raw episode date
      * @param dateFormats Formats
@@ -167,7 +157,7 @@ public class Utils {
                 TemporalAccessor accessor = Utils.YEAR_ONLY.parse(episodeAiredDate);
                 return Year.from(accessor);
             } catch (DateTimeException ex) {
-
+                // ignore this exception
             }
 
             System.err.println(msg);

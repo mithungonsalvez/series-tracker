@@ -16,7 +16,6 @@ repositories {
 }
 
 dependencies {
-    compile 'commons-io:commons-io:2.+'
     compile ('com.googlecode.json-simple:json-simple:1.+') {
         exclude group: 'junit', module: 'junit' //by both name and group
     }

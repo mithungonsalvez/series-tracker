@@ -69,7 +69,6 @@ public class Series implements Comparable<Series> {
 
     @Override
     public int compareTo(Series series) {
-        // return getEpisodeToCompare(this).compareTo(getEpisodeToCompare(series));
         Episode tEpisode = getEpisodeToCompare(this);
         Episode iEpisode = getEpisodeToCompare(series);
 
@@ -81,7 +80,12 @@ public class Series implements Comparable<Series> {
             return -1;
         }
 
-        return tEpisode.compareTo(iEpisode);
+        int result = tEpisode.compareTo(iEpisode);
+        if (result == 0) {
+            return this.title.compareToIgnoreCase(series.title);
+        } else {
+            return result;
+        }
     }
 
     /**

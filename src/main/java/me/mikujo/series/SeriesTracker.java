@@ -3,10 +3,7 @@
  */
 package me.mikujo.series;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -24,8 +21,6 @@ import me.mikujo.series.wiki.Keyz;
 import me.mikujo.series.wiki.WikiParser;
 import me.mikujo.series.writer.IFormatter;
 import me.mikujo.series.writer.TextFormatter;
-
-import org.apache.commons.io.output.TeeOutputStream;
 
 /**
  * Series tracker class that ties up all the code together
@@ -103,7 +98,7 @@ public class SeriesTracker {
         }
 
         Arrays.sort(allSeries);
-        try (Writer writer = getWriter(output)) {
+        try (Writer writer = Files.newBufferedWriter(output, StandardCharsets.UTF_8)) {
             IFormatter formatter = buildFormatter(outputFormat, writer);
             for (Series series : allSeries) {
                 formatter.write(series);
@@ -207,22 +202,6 @@ public class SeriesTracker {
         }
 
         return formatter;
-    }
-
-    /**
-     * Returns the writer
-     * @param output Output file path
-     * @return Writer instance
-     * @throws IOException if opening the file fails
-     */
-    @SuppressWarnings("resource")
-    private Writer getWriter(Path output) throws IOException {
-        String debug = System.getProperty("debug.writing", null);
-        OutputStream os = new BufferedOutputStream(Files.newOutputStream(output));
-        if (Boolean.parseBoolean(debug)) {
-            os = new TeeOutputStream(System.out, os);
-        }
-        return new OutputStreamWriter(os, StandardCharsets.UTF_8);
     }
 
 }
