@@ -1,7 +1,23 @@
-/**
- * TextWriter.java Created 3:12:24 pm 2015
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package me.mikujo.series.writer;
+
+import me.mikujo.series.Episode;
+import me.mikujo.series.Series;
+import me.mikujo.series.filters.IFilter;
+import me.mikujo.series.formatters.FormatHelper;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -9,13 +25,9 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.Temporal;
 import java.util.Arrays;
 import java.util.List;
-
-import me.mikujo.series.Episode;
-import me.mikujo.series.Series;
 
 /**
  * Text writer implementation
@@ -23,31 +35,19 @@ import me.mikujo.series.Series;
  */
 public class TextFormatter implements IFormatter {
 
-    /** Indicates that the date is unknown */
-    private static final String DATE_IS_UNKNOWN = "?? ??? ????";
-
-    /** Used to format the output */
+    /** Used to format the output; An array of characters containing 32 spaces */
     private static final char[] FILLER_32 = new char[32];
 
-    /** Used to format the output */
+    /** Used to format the output; An array of characters containing 8 spaces */
     private static final char[] FILLER_08 = new char[8];
 
-    /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
-    private static final DateTimeFormatter LOCAL_DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy");
-
-    /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
-    private static final DateTimeFormatter YEAR_MONTH_FORMAT = DateTimeFormatter.ofPattern("?? MMM yyyy");
-
-    /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
-    private static final DateTimeFormatter YEAR_FORMAT = DateTimeFormatter.ofPattern("?? ??? yyyy");
+    /** Writer instance */
+    private final Writer writer;
 
     static {
         Arrays.fill(FILLER_32, ' ');
         Arrays.fill(FILLER_08, ' ');
     }
-
-    /** Writer instance */
-    private final Writer writer;
 
     /**
      * Constructor
@@ -59,55 +59,34 @@ public class TextFormatter implements IFormatter {
 
     /** {@inheritDoc} */
     @Override
-    public void write(Series series) throws IOException {
-        ensureSize(series.episodes, series.watched[0], "Season not found with number ", series.title);
-        List<Episode> episodes = series.episodes.get(series.watched[0] - 1);
-        ensureSize(episodes, series.watched[1], "Episode not found with number ", series.title);
+    public void write(Series series, IFilter<Episode> episodeFilter) throws IOException {
+        try {
+            // write the series header
+            writeSeriesHeader(series.url, series.title);
 
-        // handle edge cases
-        if (episodes.size() == series.watched[1]) { // we are at the last episode of the season
-            if (series.episodes.size() > series.watched[0]) { // check if next season is available
-                // write from next season, 1st episode
-                write(series.url, series.title, series.episodes, series.watched[0], 0);
-            } else {
-                // We do not have any more series.episodes...
-                writeSeriesHeader(series.url, series.title);
+            boolean episodesWritten = false;
+            for (List<Episode> season : series.episodes) {
+                for (Episode episode : season) {
+                    if (episodeFilter.allow(episode)) {
+                        if (episodesWritten) {
+                            writer.write(FILLER_32);
+                        }
+                        episodesWritten = true;
+                        writeEpisode(episode);
+                    }
+                }
+            }
+
+            if (!episodesWritten) {
+                // We did not write any episodes, i.e, we not have any more episodes in this season...
                 writeEpisode(series.episodes.size() + 1, 1);
                 writer.append(DATE_IS_UNKNOWN).append('\n');
             }
-        } else {
-            // start from current season after current episode
-            write(series.url, series.title, series.episodes, series.watched[0] - 1, series.watched[1]);
-        }
-        writer.write('\n');
-    }
 
-    /**
-     * Write the final output
-     * @param url URL
-     * @param title Title of the series
-     * @param seasons List that has been fetched from the URL
-     * @param seasonIdx Season Index (Starting from 0)
-     * @param episodeIdx Episode Index (Starting from 0)
-     * @throws IOException If there is a problem while write the data
-     */
-    private void write(String url, String title, List<List<Episode>> seasons, int seasonIdx, int episodeIdx)
-            throws IOException {
+            writer.write('\n');
 
-        try {
-            writeSeriesHeader(url, title);
-            write(seasons, seasonIdx, episodeIdx);
-
-            episodeIdx++;
-            for (int i = seasonIdx; i < seasons.size(); i++) {
-                for (int j = episodeIdx; j < seasons.get(i).size(); j++) {
-                    writer.write(FILLER_32);
-                    write(seasons, i, j);
-                }
-                episodeIdx = 0;
-            }
         } catch (Exception ex) {
-            System.err.println("Error for Title [" + title + "], URL [" + url + "]");
+            System.err.println("Error for Title [" + series.title + "], URL [" + series.url + "]");
             throw ex;
         }
     }
@@ -125,14 +104,11 @@ public class TextFormatter implements IFormatter {
 
     /**
      * Write the final output
-     * @param seasons List that has been fetched from the URL
-     * @param seasonIdx Season Index (Starting from 0)
-     * @param episodeIdx Episode Index (Starting from 0)
+     * @param episode Episode to be written
      * @throws IOException If there is a problem while write the data
      */
-    private void write(List<List<Episode>> seasons, int seasonIdx, int episodeIdx) throws IOException {
-        writeEpisode(seasonIdx + 1, episodeIdx + 1);
-        Episode episode = seasons.get(seasonIdx).get(episodeIdx);
+    private void writeEpisode(Episode episode) throws IOException {
+        writeEpisode(episode.season, episode.episode);
         String date = checkGetDate(episode.date);
         writer.write(date);
         writer.write('\n');
@@ -141,7 +117,7 @@ public class TextFormatter implements IFormatter {
     /**
      * Check and return the date in string form that can be written
      * @param date Instant in time
-     * @return String form of the instant, if the input is null, then we will return {@link #DATE_IS_UNKNOWN}
+     * @return String form of the instant, if the input is null, then we will return {@link FormatHelper#DATE_IS_UNKNOWN}
      */
     private String checkGetDate(Temporal date) {
         try {
@@ -168,8 +144,8 @@ public class TextFormatter implements IFormatter {
      * @throws IOException If writing fails
      */
     private void writeEpisode(int season, int episode) throws IOException {
-        normalize(season, writer.append('S'));
-        normalize(episode, writer.append('E'));
+        FormatHelper.normalize(season, writer.append('S'));
+        FormatHelper.normalize(episode, writer.append('E'));
         writer.write(FILLER_08);
     }
 

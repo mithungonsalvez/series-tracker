@@ -1,35 +1,44 @@
-/**
- * SeriesTracker.java Created 12:15:14 pm 2015
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 package me.mikujo.series;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
+import me.mikujo.series.filters.IFilter;
 import me.mikujo.series.utils.FormatDef;
+import me.mikujo.series.utils.Tuple2;
 import me.mikujo.series.utils.Utils;
 import me.mikujo.series.wiki.Keyz;
 import me.mikujo.series.wiki.WikiParser;
 import me.mikujo.series.writer.IFormatter;
 import me.mikujo.series.writer.TextFormatter;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 /**
  * Series tracker class that ties up all the code together
  * @author mithun.gonsalvez
  */
 public class SeriesTracker {
-
-    /** Cache directory */
-    private static final String CACHE_DIR = ".cache";
 
     /** Output file path */
     private final Path output;
@@ -46,17 +55,23 @@ public class SeriesTracker {
     /** Use cached data if available, if data is not available, then connect and fetch data */
     private final boolean offline;
 
+    /** Filters map for each series that we are interested in */
+    private final Map<String, IFilter<Episode>> filters;
+
+    /** Cache directory */
+    private final Path cacheDir;
+
     /**
      * Series tracker constructor
      * @param input Input JSON file that specifies the series as well as the format that each series follow
+     * @param userConfig User's input that indicates whether the user has seen the episodes or not
      * @param output Output file path
+     * @param cacheDir Cache directory
      * @param outputFormat Output format that defines the output format
      * @param offline Use cached data if available, if data is not available, then connect and fetch data
      * @throws IOException If something goes wrong while reading the data
      */
-    public SeriesTracker(Path input, Path output, String outputFormat, boolean offline) throws IOException {
-        this.output = output;
-        this.outputFormat = outputFormat;
+    public SeriesTracker(Path input, Path userConfig, Path output, Path cacheDir, String outputFormat, boolean offline) throws IOException {
 
         Map<String, Object> rawData = Utils.readData(input);
         @SuppressWarnings("unchecked")
@@ -65,7 +80,14 @@ public class SeriesTracker {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> allSeries = (List<Map<String, Object>>) rawData.get(Keyz.SERIES);
 
+        Map<String, Object> userRawData = Utils.readData(userConfig);
+        Map<String, IFilter<Episode>> filters = Utils.readFilters(userRawData);
+
+        this.cacheDir = cacheDir;
+        this.output = output;
+        this.outputFormat = outputFormat;
         this.allSeries = allSeries;
+        this.filters = filters;
         this.formats = processFormats(rawFormats);
         this.offline = offline;
     }
@@ -75,19 +97,30 @@ public class SeriesTracker {
      * @throws IOException If there is a problem while writing the data
      */
     public void process() throws IOException {
-        // TODO : Make the Cache directory location configurable
-        Path wikiDir = Paths.get(CACHE_DIR, Keyz.TYPE_WIKI);
+
+        Path wikiDir = this.cacheDir.resolve(Keyz.TYPE_WIKI);
         Files.createDirectories(wikiDir);
 
         int i = 0;
-        Series[] allSeries = new Series[this.allSeries.size()];
+//        Tuple2<Series, Episode>[] allSeries = new Series[this.allSeries.size()];
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        Tuple2<Series, Episode>[] allSeries = new Tuple2[this.allSeries.size()];
         for (Map<String, Object> rawSeries : this.allSeries) {
             FormatDef formatDef = getFormatDef(rawSeries, i);
             Object type = formatDef.get(Keyz.TYPE);
             try {
                 if (Keyz.TYPE_WIKI.equals(type)) { // When we add more types here, put a lookup mechanism
-                    Series seriesData = WikiParser.parse(rawSeries, formatDef, wikiDir, offline);
-                    allSeries[i++] = seriesData;
+                    Series series = WikiParser.parse(rawSeries, formatDef, wikiDir, this.offline);
+                    IFilter<Episode> filter = this.filters.get(series.title);
+                    if (filter == null) {
+                        // TODO : Log a message
+                        filter = Utils.getAllowAllFilter();
+                        this.filters.put(series.title, filter);
+                    }
+
+                    this.filters.putIfAbsent(series.title, Utils.getAllowAllFilter());
+                    Episode episode = Utils.getFirstEpisode(series, filter);
+                    allSeries[i++] = new Tuple2<>(series, episode);
                 } else {
                     throw new IOException("Unknown Type specified for series: " + rawSeries);
                 }
@@ -97,11 +130,12 @@ public class SeriesTracker {
             }
         }
 
-        Arrays.sort(allSeries);
-        try (Writer writer = Files.newBufferedWriter(output, StandardCharsets.UTF_8)) {
-            IFormatter formatter = buildFormatter(outputFormat, writer);
-            for (Series series : allSeries) {
-                formatter.write(series);
+        Arrays.sort(allSeries, new SeriesComparator());
+        try (Writer writer = Files.newBufferedWriter(this.output, StandardCharsets.UTF_8)) {
+            IFormatter formatter = buildFormatter(this.outputFormat, writer);
+            for (Tuple2<Series, Episode> seriesTuple : allSeries) {
+                IFilter<Episode> filter = this.filters.get(seriesTuple.t1.title);
+                formatter.write(seriesTuple.t1, filter);
             }
         }
     }
@@ -161,6 +195,7 @@ public class SeriesTracker {
             FormatDef fDef = buildFormatDef(rFormats, id, format);
             Object extId = format.get(Keyz.EXTENDS);
             if (extId != null) {
+                @SuppressWarnings("element-type-mismatch")
                 FormatDef parentFormatDef = buildFormatDef(rFormats, (String) extId, formats.get(extId));
                 fDef.setParent(parentFormatDef);
             }

@@ -1,5 +1,15 @@
-/**
- * WikiParser.java Created 3:50:21 am 2015
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package me.mikujo.series.wiki;
@@ -8,10 +18,6 @@ import me.mikujo.series.Episode;
 import me.mikujo.series.Series;
 import me.mikujo.series.utils.FormatDef;
 import me.mikujo.series.utils.Utils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 /**
  * WikiParser
@@ -66,7 +76,6 @@ public class WikiParser {
     private Series process(Map<String, Object> series, FormatDef formatDef, Path rawDir, boolean offline) throws IOException {
         String title = (String) series.get(Keyz.TITLE);
         String page = (String) series.get(Keyz.PAGE);
-        String watched = (String) series.get(Keyz.WATCHED);
 
         String tocId = (String) formatDef.get(Keyz.TOC_ID);
         String epClz = (String) formatDef.get(Keyz.EPISODES_LINK);
@@ -79,7 +88,6 @@ public class WikiParser {
 
         int episodeTitle = ((Long) formatDef.get(Keyz.TABLE_TITLE)).intValue();
         int episodeAirDate = ((Long) formatDef.get(Keyz.TABLE_AIRDATE)).intValue();
-        int[] seasonEpisode = Utils.parseWatched(watched);
 
         String strUrl = WIKI_PREFIX + page;
         Path file = Utils.fetchUrl(title, strUrl, rawDir, offline);
@@ -88,7 +96,7 @@ public class WikiParser {
             List<List<Episode>> list = parse(inputStream, strUrl, title, tocId, epClz, rowClass, episodeTitle,
                     episodeAirDate, dateFormat);
 
-            return new Series(strUrl, title, list, seasonEpisode);
+            return new Series(strUrl, title, list);
         }
 
     }
@@ -115,7 +123,7 @@ public class WikiParser {
         // get the table of contents which will help us to find the class names which have episodes tables list
         String query = '#' + tocId + " a[href=" + epClz + ']';
         Elements tocEpisodesLst = doc.select(query);
-        if (tocEpisodesLst.size() == 0) {
+        if (tocEpisodesLst.isEmpty()) {
             // if not found, possibly no TOC is present, so lets see if we can fetch episodes list directly
             List<Episode> season = processSeason(epClz, doc, title, 1, rowClass, colTitle, colDate, dateFormat);
             if (season == null) {
@@ -127,7 +135,7 @@ public class WikiParser {
             Element tocEpisodes = tocEpisodesLst.get(0);
             Elements seasonIds = tocEpisodes.parent().select("ul > li > a");
 
-            if (seasonIds.size() == 0) {
+            if (seasonIds.isEmpty()) {
                 // two possibilities: 1. First season 2. This wiki page does not follow our standard :(
                 // since we are optimistic, try fetching the 'Episodes' and seeing if we are right
                 String link = getLink(tocEpisodes);
@@ -233,7 +241,7 @@ public class WikiParser {
     }
 
     /**
-     * Cleanup the data<br/>
+     * Cleanup the data<br>
      * The &amp;&nbsp; is interpreted as '\u00a0' ascii code of 160 instead of 32 for the standard space, so we clean it
      * by replacing it and other things like it into space characters
      * @param rawData Raw data to be cleaned up
@@ -258,18 +266,14 @@ public class WikiParser {
      */
     private Element findNextTable(int childIndex, Element parent, int limit) {
         Element elTable = null;
-        int count = 0;
-        while (count < limit) {
+
+        for(int count = 0; count < limit ; count++) {
             Element element = parent.child(childIndex + count);
-            String role = element.attr("role");
             String tagName = element.tagName().toLowerCase();
-            if (tagName.equals("table") && !"presentation".equals(role)) {
+            if (tagName.equals("table") && !"presentation".equals(element.attr("role"))) {
                 elTable = element;
                 break;
-            } else if (tagName.charAt(0) == 'h' && tagName.length() == 2) { // encountered a heading tag, so break
-                break;
             }
-            count++;
         }
 
         return elTable;

@@ -1,11 +1,25 @@
-/**
- * Utils.java Created 3:23:05 am 2015
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package me.mikujo.series.utils;
 
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import me.mikujo.series.Episode;
+import me.mikujo.series.Series;
+import me.mikujo.series.filters.CompositeFilter;
+import me.mikujo.series.filters.IFilter;
+import me.mikujo.series.filters.SeriesFilter;
+import me.mikujo.series.wiki.Keyz;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,8 +36,14 @@ import java.time.Year;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAccessor;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 /**
  * Utilities to help with doing some of our work
@@ -31,20 +51,33 @@ import java.util.regex.Pattern;
  */
 public class Utils {
 
+    /** Multiplier value of the unifier episode setting */
+    private static final int SEASON_MULTIPLER = Integer.parseInt(System.getProperty(Keyz.SEASON_MULTIPLIER, "10000"));
+
+    /** An Allow All filter */
+    @SuppressWarnings("rawtypes")
+    public static final IFilter ALLOW_ALL_FILTER = new IFilter<Object>() {
+
+        @Override
+        public boolean allow(Object input) {
+            return true;
+        }
+
+    };
+
     /** Pattern to match season and episode */
     private static final Pattern WATCHED_PATTERN = Pattern.compile("S(\\d+)E(\\d+)", Pattern.CASE_INSENSITIVE);
 
     /** Date time formatter instances that are the default patterns that are found */
     public static final DateTimeFormatter[] DATE_TIME_FORMATTERS = {
-            DateTimeFormatter.ofPattern("yyyy-M-dd"),
-            DateTimeFormatter.ofPattern("MMMM d, yyyy"),
-    };
+        DateTimeFormatter.ofPattern("yyyy-M-dd"),
+        DateTimeFormatter.ofPattern("MMMM d, yyyy"),};
 
     /** Only contains patters for year */
     public static final DateTimeFormatter YEAR_ONLY = DateTimeFormatter.ofPattern("yyyy");
 
     /**
-     * Fetch the URL as specified by the String URL and return the saved copy<br/>
+     * Fetch the URL as specified by the String URL and return the saved copy<br>
      * If the URL contents have not changed, then fetch it from the cache
      * @param title Title of the URL
      * @param strUrl URL in string form
@@ -102,12 +135,12 @@ public class Utils {
     /**
      * Parse the watched input with the appropriate pattern
      * @param watched Watched pattern of the form S{Season-Number}E{Episode-Number}
-     * @return an array with two items 0th index as Season-Number and 1st index as the Episode-Number
+     * @return the unified index
      */
-    public static int[] parseWatched(String watched) {
+    public static int parseWatched(String watched) {
         Matcher matcher = WATCHED_PATTERN.matcher(watched);
         if (matcher.matches()) {
-            return new int[]{Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2))};
+            return Utils.toUnifiedEpisodeIndex(Integer.parseInt(matcher.group(1)), Integer.parseInt(matcher.group(2)));
         } else {
             throw new IllegalArgumentException("Provided input indicating 'watched' [" + watched
                     + "] does not match valid format");
@@ -116,6 +149,7 @@ public class Utils {
 
     /**
      * Read the data from the path and return the object
+     * @param <T> Type of data that is returned
      * @param jsonPath Path that contains the JSON data
      * @return JSON Object
      * @throws IOException If there is a problem while parsing
@@ -164,6 +198,73 @@ public class Utils {
         }
 
         return null;
+    }
+
+    /**
+     *
+     * @param userRawData
+     * @return
+     */
+    public static Map<String, IFilter<Episode>> readFilters(Map<String, Object> userRawData) {
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> rawWatchedInfo = (List<Map<String, String>>) userRawData.get(Keyz.WATCHED);
+
+        Map<String, IFilter<Episode>> filtersMap = new HashMap<>();
+        for (Map<String, String> watchedMap : rawWatchedInfo) {
+            String rawWatched = watchedMap.get(Keyz.WATCHED);
+            String[] rawParts = rawWatched.split(",");
+            List<IFilter<Episode>> filters = new ArrayList<>(rawParts.length);
+            for (int i = 0; i < rawParts.length; i++) {
+                rawParts[i] = rawParts[i].trim();
+                if (!rawParts[i].isEmpty()) {
+                    filters.add(new SeriesFilter(rawParts[i]));
+                }
+            }
+
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            IFilter<Episode>[] filtersArr = filters.toArray(new IFilter[filters.size()]);
+            filtersMap.put(watchedMap.get(Keyz.TITLE), new CompositeFilter<>(filtersArr));
+        }
+
+        return filtersMap;
+    }
+
+    /**
+     * Get the first episode from the series that passes through the filter
+     * @param series Series
+     * @param filter Filter
+     * @return First episode
+     */
+    public static Episode getFirstEpisode(Series series, IFilter<Episode> filter) {
+        for (List<Episode> season : series.episodes) {
+            for (Episode episode : season) {
+                if (filter.allow(episode)) {
+                    return episode;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Create a unified value that is used for comparisons among episodes
+     * @param season Season number of the episode
+     * @param episode Episode number
+     * @return Unified index that can be compared across all the series
+     */
+    public static int toUnifiedEpisodeIndex(int season, int episode) {
+        return (season * SEASON_MULTIPLER) + episode;
+    }
+
+    /**
+     * Returns an allow all filter
+     * @param <T> Type of object being passed in
+     * @return the Allow-All Filter
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> IFilter<T> getAllowAllFilter() {
+        return ALLOW_ALL_FILTER;
     }
 
 }

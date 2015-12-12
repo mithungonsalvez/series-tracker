@@ -1,8 +1,20 @@
-/**
- * Episode.java Created 8:55:10 pm 2015
+/*
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package me.mikujo.series;
+
+import me.mikujo.series.utils.Utils;
 
 import java.time.LocalDate;
 import java.time.MonthDay;
@@ -28,6 +40,9 @@ public class Episode implements Comparable<Episode> {
     /** Season number */
     public final int season;
 
+    /** Unified episode id */
+    public final int unifiedEpisodeIndex;
+
     /**
      * Episode Constructor
      * @param season Season number
@@ -40,6 +55,7 @@ public class Episode implements Comparable<Episode> {
         this.episode = episode;
         this.title = title;
         this.date = date;
+        this.unifiedEpisodeIndex = Utils.toUnifiedEpisodeIndex(season, episode);
     }
 
     @Override
