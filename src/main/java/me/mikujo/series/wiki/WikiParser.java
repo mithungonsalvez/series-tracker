@@ -144,7 +144,7 @@ public class WikiParser {
                 }
             }
 
-            if (seasonIds.isEmpty() || allSeasons.isEmpty()) {
+            if (allSeasons.isEmpty()) {
                 // two possibilities: 1. First season 2. This wiki page does not follow our standard :(
                 // since we are optimistic, try fetching the 'Episodes' and seeing if we are right
                 String link = getLink(tocEpisodes);
