@@ -135,7 +135,16 @@ public class WikiParser {
             Element tocEpisodes = tocEpisodesLst.get(0);
             Elements seasonIds = tocEpisodes.parent().select("ul > li > a");
 
-            if (seasonIds.isEmpty()) {
+            for (int i = 0; i < seasonIds.size(); i++) {
+                Element elLink = seasonIds.get(i);
+                String link = getLink(elLink);
+                List<Episode> season = processSeason(link, doc, title, i + 1, rowClass, colTitle, colDate, dateFormat);
+                if (season != null) {
+                    allSeasons.add(season);
+                }
+            }
+
+            if (seasonIds.isEmpty() || allSeasons.isEmpty()) {
                 // two possibilities: 1. First season 2. This wiki page does not follow our standard :(
                 // since we are optimistic, try fetching the 'Episodes' and seeing if we are right
                 String link = getLink(tocEpisodes);
@@ -145,14 +154,6 @@ public class WikiParser {
                 }
             }
 
-            for (int i = 0; i < seasonIds.size(); i++) {
-                Element elLink = seasonIds.get(i);
-                String link = getLink(elLink);
-                List<Episode> season = processSeason(link, doc, title, i + 1, rowClass, colTitle, colDate, dateFormat);
-                if (season != null) {
-                    allSeasons.add(season);
-                }
-            }
         }
 
         return allSeasons;
