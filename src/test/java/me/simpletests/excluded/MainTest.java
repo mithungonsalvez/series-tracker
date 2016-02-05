@@ -34,7 +34,7 @@ public class MainTest {
         String[] args = {
             "J:/Synked/GoogleDrive/Series/SeriesList.json",
             "J:/Synked/GoogleDrive/Series/Watched.json",
-            "J:/Synked/GoogleDrive/L4.txt",
+            "J:/Synked/GoogleDrive/Series/L4.txt",
             "J:/Coding/Java/code/SeriesTracker/.cache",
             "text",
             "false"
