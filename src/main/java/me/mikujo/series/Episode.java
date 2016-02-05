@@ -81,9 +81,9 @@ public class Episode implements Comparable<Episode> {
         if (temporal instanceof LocalDate) {
             iLocalDate = (LocalDate) temporal;
         } else if (temporal instanceof YearMonth) {
-            iLocalDate = ((YearMonth) temporal).atDay(1);
+            iLocalDate = ((YearMonth) temporal).atEndOfMonth();
         } else if (temporal instanceof Year) {
-            iLocalDate = ((Year) temporal).atMonthDay(MonthDay.of(1, 1));
+            iLocalDate = ((Year) temporal).atMonthDay(MonthDay.of(12, 31)).plusDays(1);
         } else {
             throw new IllegalArgumentException("Unknown type [" + temporal.getClass().getName());
         }
