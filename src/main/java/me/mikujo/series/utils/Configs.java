@@ -20,7 +20,7 @@ import java.util.Map;
  * A simple hierarchical data-structure to hold format related information
  * @author mithun.gonsalvez
  */
-public class FormatDef {
+public class Configs {
 
     /** Map containing the actual data */
     private final Map<String, Object> entries;
@@ -29,14 +29,14 @@ public class FormatDef {
     private final String id;
 
     /** Reference to the parent (nullable) */
-    private FormatDef parent;
+    private Configs parent;
 
     /**
      * Constructor
      * @param id Id of the format definition
      * @param entries Map of properties that contains data for this definition
      */
-    public FormatDef(String id, Map<String, Object> entries) {
+    public Configs(String id, Map<String, Object> entries) {
         if (entries == null) {
             throw new IllegalArgumentException("'null' entries are not supported for key [" + id + "]");
         }
@@ -75,7 +75,7 @@ public class FormatDef {
      * Sets the parent format definition
      * @param parent Parent format definition
      */
-    public void setParent(FormatDef parent) {
+    public void setParent(Configs parent) {
         if (this.parent != null) {
             throw new IllegalArgumentException("Attempt to override parent of id [" + this.parent.id + "] in ["
                     + this.id + "] with [" + parent.id + "]");

@@ -15,7 +15,7 @@
 package me.mikujo.series;
 
 import me.mikujo.series.filters.IFilter;
-import me.mikujo.series.utils.FormatDef;
+import me.mikujo.series.utils.Configs;
 import me.mikujo.series.utils.Tuple2;
 import me.mikujo.series.utils.Utils;
 import me.mikujo.series.wiki.Keyz;
@@ -47,7 +47,7 @@ public class SeriesTracker {
     private final String outputFormat;
 
     /** Formats for all the series */
-    private final Map<String, FormatDef> formats;
+    private final Map<String, Configs> formats;
 
     /** All the series that have to be processed */
     private final List<Map<String, Object>> allSeries;
@@ -60,6 +60,8 @@ public class SeriesTracker {
 
     /** Cache directory */
     private final Path cacheDir;
+    
+    private final Map<String, Map<String, List<String>>> hints;
 
     /**
      * Series tracker constructor
@@ -72,23 +74,29 @@ public class SeriesTracker {
      * @throws IOException If something goes wrong while reading the data
      */
     public SeriesTracker(Path input, Path userConfig, Path output, Path cacheDir, String outputFormat, boolean offline) throws IOException {
-
+        
         Map<String, Object> rawData = Utils.readData(input);
         @SuppressWarnings("unchecked")
         Map<String, Map<String, Object>> rawFormats = (Map<String, Map<String, Object>>) rawData.get(Keyz.FORMATS);
-
+        
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> allSeries = (List<Map<String, Object>>) rawData.get(Keyz.SERIES);
-
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Map<String, List<String>>> hints = (Map<String, Map<String, List<String>>>) rawData.get(Keyz.HINTS);
+        // apply the lower-case transformation to each hint value
+        hints.values().forEach(hint -> hint.values().forEach(vals -> vals.replaceAll(s -> s.toLowerCase())));
+        
         Map<String, Object> userRawData = Utils.readData(userConfig);
         Map<String, IFilter<Episode>> filters = Utils.readFilters(userRawData);
-
+        
         this.cacheDir = cacheDir;
         this.output = output;
         this.outputFormat = outputFormat;
         this.allSeries = allSeries;
         this.filters = filters;
         this.formats = processFormats(rawFormats);
+        this.hints = hints;
         this.offline = offline;
     }
 
@@ -97,27 +105,28 @@ public class SeriesTracker {
      * @throws IOException If there is a problem while writing the data
      */
     public void process() throws IOException {
-
+        
         Path wikiDir = this.cacheDir.resolve(Keyz.TYPE_WIKI);
         Files.createDirectories(wikiDir);
-
+        
         int i = 0;
-//        Tuple2<Series, Episode>[] allSeries = new Series[this.allSeries.size()];
         @SuppressWarnings({"unchecked", "rawtypes"})
         Tuple2<Series, Episode>[] allSeries = new Tuple2[this.allSeries.size()];
         for (Map<String, Object> rawSeries : this.allSeries) {
-            FormatDef formatDef = getFormatDef(rawSeries, i);
+            Configs formatDef = getFormatDef(rawSeries, i);
+            Map<String, List<String>> tableHints = getTableHints(rawSeries, i);
             Object type = formatDef.get(Keyz.TYPE);
             try {
                 if (Keyz.TYPE_WIKI.equals(type)) { // When we add more types here, put a lookup mechanism
-                    Series series = WikiParser.parse(rawSeries, formatDef, wikiDir, this.offline);
+                    RawInfo rawInfo = new RawInfo(rawSeries, formatDef, tableHints);
+                    Series series = WikiParser.parse(rawInfo, wikiDir, this.offline);
                     IFilter<Episode> filter = this.filters.get(series.title);
                     if (filter == null) {
                         // TODO : Log a message
                         filter = Utils.getAllowAllFilter();
                         this.filters.put(series.title, filter);
                     }
-
+                    
                     this.filters.putIfAbsent(series.title, Utils.getAllowAllFilter());
                     Episode episode = Utils.getFirstEpisode(series, filter);
                     allSeries[i++] = new Tuple2<>(series, episode);
@@ -129,7 +138,7 @@ public class SeriesTracker {
                 // TODO : Save this and do stuff with it
             }
         }
-
+        
         Arrays.sort(allSeries, new SeriesComparator());
         try (Writer writer = Files.newBufferedWriter(this.output, StandardCharsets.UTF_8)) {
             IFormatter formatter = buildFormatter(this.outputFormat, writer);
@@ -139,31 +148,52 @@ public class SeriesTracker {
             }
         }
     }
+    
+    private Map<String, List<String>> getTableHints(Map<String, Object> rawSeries, int count) {
+        Object hintInfo = rawSeries.get(Keyz.HINTS);
+        if (hintInfo == null) {
+            Map<String, List<String>> defHints = this.hints.get("wiki:auto");
+            if (defHints == null) {
+                throw new IllegalArgumentException("No default hints provided for series [" + count + "]");
+            }
+            return defHints;
+        } else if (hintInfo instanceof String) {
+            return this.hints.get((String) hintInfo);
+        } else if (hintInfo instanceof Map) {
+            @SuppressWarnings("unchecked") // TODO : find a better way
+            Map<String, List<String>> tableHints = (Map<String, List<String>>) hintInfo;
+            return tableHints;
+        } else {
+            throw new IllegalArgumentException("Unknown type specified for hints [" + hintInfo + "]");
+        }
+    }
 
     /**
      * Returns the format definition
      * @param rawSeries Raw Series data
      * @param count Count
-     * @return FormatDef for the defined format
+     * @return Configs for the defined format
      */
-    private FormatDef getFormatDef(Map<String, Object> rawSeries, int count) {
+    private Configs getFormatDef(Map<String, Object> rawSeries, int count) {
         Object formatId = rawSeries.get(Keyz.FORMAT);
-        FormatDef formatDef;
-        if (formatId instanceof String) {
+        Configs formatDef;
+        if (formatId == null) {
+            formatDef = checkGetFormatDef("wiki:toc-episodes-vevent");
+        } else if (formatId instanceof String) {
             formatDef = checkGetFormatDef((String) formatId);
         } else if (formatId instanceof Map) {
-            @SuppressWarnings("unchecked")
+            @SuppressWarnings("unchecked") // TODO : find a way to determine the types as well
             Map<String, Object> formatIdMap = (Map<String, Object>) formatId;
             formatDef = buildFormatDef(this.formats, count + ":" + System.currentTimeMillis(), formatIdMap);
             Object extId = formatDef.getOptional(Keyz.EXTENDS);
             if (extId != null) {
-                FormatDef parentDef = checkGetFormatDef((String) extId);
+                Configs parentDef = checkGetFormatDef((String) extId);
                 formatDef.setParent(parentDef);
             }
         } else {
             throw new IllegalArgumentException("Unknown type for def [" + formatId + "]");
         }
-
+        
         return formatDef;
     }
 
@@ -172,8 +202,8 @@ public class SeriesTracker {
      * @param formatId Format id
      * @return Format definition
      */
-    private FormatDef checkGetFormatDef(String formatId) {
-        FormatDef formatDef = this.formats.get(formatId);
+    private Configs checkGetFormatDef(String formatId) {
+        Configs formatDef = this.formats.get(formatId);
         if (formatDef == null) {
             throw new IllegalArgumentException("No format defined with id [" + formatId + "]");
         }
@@ -185,39 +215,39 @@ public class SeriesTracker {
      * @param formats formats to process
      * @return Map containing the format definitions keyed by its identifier
      */
-    private static Map<String, FormatDef> processFormats(Map<String, Map<String, Object>> formats) {
-        Map<String, FormatDef> rFormats = new HashMap<>();
-
+    private static Map<String, Configs> processFormats(Map<String, Map<String, Object>> formats) {
+        Map<String, Configs> rFormats = new HashMap<>();
+        
         for (Entry<String, Map<String, Object>> entry : formats.entrySet()) {
             String id = entry.getKey();
             Map<String, Object> format = entry.getValue();
-
-            FormatDef fDef = buildFormatDef(rFormats, id, format);
+            
+            Configs fDef = buildFormatDef(rFormats, id, format);
             Object extId = format.get(Keyz.EXTENDS);
             if (extId != null) {
                 @SuppressWarnings("element-type-mismatch")
-                FormatDef parentFormatDef = buildFormatDef(rFormats, (String) extId, formats.get(extId));
+                Configs parentFormatDef = buildFormatDef(rFormats, (String) extId, formats.get(extId));
                 fDef.setParent(parentFormatDef);
             }
         }
-
+        
         return rFormats;
     }
 
     /**
-     * Fetches the FormatDef from the map, if available, else builds one
+     * Fetches the Configs from the map, if available, else builds one
      * @param rFormats Formats map
      * @param id Id of the format to fetch
      * @param format Raw format
      * @return Format definition, built or retrieved
      */
-    private static FormatDef buildFormatDef(Map<String, FormatDef> rFormats, String id, Map<String, Object> format) {
-        FormatDef formatDef = rFormats.get(id);
+    private static Configs buildFormatDef(Map<String, Configs> rFormats, String id, Map<String, Object> format) {
+        Configs formatDef = rFormats.get(id);
         if (formatDef == null) {
-            formatDef = new FormatDef(id, format);
+            formatDef = new Configs(id, format);
             rFormats.put(id, formatDef);
         }
-
+        
         return formatDef;
     }
 
@@ -235,8 +265,8 @@ public class SeriesTracker {
         } else {
             throw new IOException("Unknown format type [" + format + "]");
         }
-
+        
         return formatter;
     }
-
+    
 }

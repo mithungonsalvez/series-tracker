@@ -87,7 +87,7 @@ public class Utils {
      * @throws IOException If something goes wrong
      */
     public static Path fetchUrl(String title, String strUrl, Path outDir, boolean offline) throws IOException {
-        System.out.println("Fetching: " + title + " Url: " + strUrl);
+        System.err.println("Fetching: " + title + " Url: " + strUrl);
 
         Path cacheFile = outDir.resolve(title);
         Path cacheFileDate = outDir.resolve(title + "_date");
@@ -267,4 +267,11 @@ public class Utils {
         return ALLOW_ALL_FILTER;
     }
 
+    public static <K, V> V getOrThrow(Map<K, V> map, K key) {
+        V value = map.get(key);
+        if (value == null) {
+            throw new IllegalArgumentException("Value for Key [" + key + "] is null");
+        }
+        return value;
+    }
 }

@@ -20,6 +20,9 @@ package me.mikujo.series.wiki;
  */
 public interface Keyz {
 
+    /** Hints */
+    String HINTS = "hints";
+
     /** Page */
     String PAGE = "page";
 
@@ -60,10 +63,10 @@ public interface Keyz {
     String TABLE_ROW_CLZ = "table.row.class";
 
     /** Table Column Season */
-    String TABLE_TITLE = "table.col.title";
+    String TABLE_COL_TITLE = "table.col.title";
 
     /** Table Column Air-Date */
-    String TABLE_AIRDATE = "table.col.air-date";
+    String TABLE_COL_AIRDATE = "table.col.air-date";
 
     /** Format of the air date column */
     String DATE_FORMAT = "air.date.format";
