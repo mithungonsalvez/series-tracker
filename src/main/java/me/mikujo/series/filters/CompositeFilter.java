@@ -21,29 +21,29 @@ package me.mikujo.series.filters;
  */
 public class CompositeFilter<M> implements IFilter<M> {
 
-    /** Filters that have to be evaluated */
-    private final IFilter<M>[] filters;
+  /** Filters that have to be evaluated */
+  private final IFilter<M>[] filters;
 
-    /**
-     * Composite filter constructor that accepts multiple filters
-     * @param filters
-     */
-    @SuppressWarnings("unchecked")
-    public CompositeFilter(IFilter<M>... filters) {
-        if (filters == null || filters.length == 0) {
-            throw new IllegalArgumentException("Filters provided is null or empty");
-        }
-        this.filters = filters;
+  /**
+   * Composite filter constructor that accepts multiple filters
+   * @param filters
+   */
+  @SuppressWarnings("unchecked")
+  public CompositeFilter(IFilter<M>... filters) {
+    if (filters == null || filters.length == 0) {
+      throw new IllegalArgumentException("Filters provided is null or empty");
     }
+    this.filters = filters;
+  }
 
-    @Override
-    public boolean allow(M input) {
-        for (IFilter<M> filter : this.filters) {
-            if (!filter.allow(input)) {
-                return false;
-            }
-        }
-        return true;
+  @Override
+  public boolean allow(M input) {
+    for (IFilter<M> filter : this.filters) {
+      if (!filter.allow(input)) {
+        return false;
+      }
     }
+    return true;
+  }
 
 }

@@ -23,25 +23,25 @@ import java.nio.file.Paths;
  */
 public class Main {
 
-    /**
-     * Main method
-     * @param args Arguments
-     * @throws Exception If something goes wrong
-     */
-    public static void main(String[] args) throws Exception {
-        // TODO : use a proper command line argument parser
-        Path input = Paths.get(args[0]);
-        Path userConfig = Paths.get(args[1]);
-        Path output = Paths.get(args[2]);
-        Path cacheDir = Paths.get(args[3]);
-        String outputFormat = args[4];
-        boolean offline = false;
-        if (args.length > 5) {
-            offline = Boolean.parseBoolean(args[5]);
-        }
-
-        SeriesTracker tracker = new SeriesTracker(input, userConfig, output, cacheDir, outputFormat, offline);
-        tracker.process();
+  /**
+   * Main method
+   * @param args Arguments
+   * @throws Exception If something goes wrong
+   */
+  public static void main(String[] args) throws Exception {
+    // TODO : use a proper command line argument parser
+    Path input = Paths.get(args[0]);
+    Path userConfig = Paths.get(args[1]);
+    Path output = Paths.get(args[2]);
+    Path cacheDir = Paths.get(args[3]);
+    String outputFormat = args[4];
+    boolean offline = false;
+    if (args.length > 5) {
+      offline = Boolean.parseBoolean(args[5]);
     }
+
+    SeriesTracker tracker = new SeriesTracker(input, userConfig, output, cacheDir, outputFormat, offline);
+    tracker.process();
+  }
 
 }

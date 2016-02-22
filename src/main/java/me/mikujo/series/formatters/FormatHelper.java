@@ -23,18 +23,18 @@ import java.io.Writer;
  */
 public class FormatHelper {
 
-    /**
-     * Normalize the value to ensure that it is a two digit number
-     * @param value Value to normalize
-     * @param output Output writer
-     * @throws IOException If there is a problem while writing
-     */
-    public static void normalize(int value, Writer output) throws IOException {
-        if (value < 10) {
-            output.append('0').append(Character.forDigit(value, 10));
-        } else {
-            output.append(String.valueOf(value));
-        }
+  /**
+   * Normalize the value to ensure that it is a two digit number
+   * @param value Value to normalize
+   * @param output Output writer
+   * @throws IOException If there is a problem while writing
+   */
+  public static void normalize(int value, Writer output) throws IOException {
+    if (value < 10) {
+      output.append('0').append(Character.forDigit(value, 10));
+    } else {
+      output.append(String.valueOf(value));
     }
+  }
 
 }

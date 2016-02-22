@@ -25,28 +25,28 @@ import java.util.Map;
  */
 public class RawInfo {
 
-    private final Map<String, Object> seriesInfo;
+  private final Map<String, Object> seriesInfo;
 
-    private final Configs layoutConfig;
+  private final Configs layoutConfig;
 
-    private final Map<String, List<String>> tableHints;
+  private final Map<String, List<String>> tableHints;
 
-    public RawInfo(Map<String, Object> seriesInfo, Configs layoutConfig, Map<String, List<String>> tableHints) {
-        this.seriesInfo = seriesInfo;
-        this.layoutConfig = layoutConfig;
-        this.tableHints = tableHints;
-    }
+  public RawInfo(Map<String, Object> seriesInfo, Configs layoutConfig, Map<String, List<String>> tableHints) {
+    this.seriesInfo = seriesInfo;
+    this.layoutConfig = layoutConfig;
+    this.tableHints = tableHints;
+  }
 
-    public Map<String, Object> getSeriesInfo() {
-        return seriesInfo;
-    }
+  public Map<String, Object> getSeriesInfo() {
+    return seriesInfo;
+  }
 
-    public Configs getLayoutConfig() {
-        return layoutConfig;
-    }
+  public Configs getLayoutConfig() {
+    return layoutConfig;
+  }
 
-    public Map<String, List<String>> getTableHints() {
-        return this.tableHints;
-    }
+  public Map<String, List<String>> getTableHints() {
+    return this.tableHints;
+  }
 
 }

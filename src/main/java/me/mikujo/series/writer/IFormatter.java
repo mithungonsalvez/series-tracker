@@ -28,38 +28,38 @@ import java.util.Arrays;
  */
 public interface IFormatter {
 
-    /** Indicates that the date is unknown */
-    public static final String DATE_IS_UNKNOWN = "?? ??? ????";
+  /** Indicates that the date is unknown */
+  public static final String DATE_IS_UNKNOWN = "?? ??? ????";
 
-    /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
-    public static final DateTimeFormatter LOCAL_DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy");
+  /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
+  public static final DateTimeFormatter LOCAL_DATE_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy");
 
-    /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
-    public static final DateTimeFormatter YEAR_MONTH_FORMAT = DateTimeFormatter.ofPattern("?? MMM yyyy");
+  /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
+  public static final DateTimeFormatter YEAR_MONTH_FORMAT = DateTimeFormatter.ofPattern("?? MMM yyyy");
 
-    /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
-    public static final DateTimeFormatter YEAR_FORMAT = DateTimeFormatter.ofPattern("?? ??? yyyy");
+  /** Date format in which we are going to write the date in; format is 03 Feb 2015 */
+  public static final DateTimeFormatter YEAR_FORMAT = DateTimeFormatter.ofPattern("?? ??? yyyy");
 
-    /**
-     * Add padding
-     * @param input Input to add padding
-     * @param length Length of expected output
-     * @return Padded array
-     */
-    public default char[] addPadding(String input, int length) {
-        char[] fill = new char[length];
-        System.arraycopy(input.toCharArray(), 0, fill, 0, input.length());
-        Arrays.fill(fill, input.length(), length, ' ');
+  /**
+   * Add padding
+   * @param input Input to add padding
+   * @param length Length of expected output
+   * @return Padded array
+   */
+  public default char[] addPadding(String input, int length) {
+    char[] fill = new char[length];
+    System.arraycopy(input.toCharArray(), 0, fill, 0, input.length());
+    Arrays.fill(fill, input.length(), length, ' ');
 
-        return fill;
-    }
+    return fill;
+  }
 
-    /**
-     * Post process the list and prepare the final output
-     * @param series Series that have to be written
-     * @param filter Filter that can be used to filter out the episodes
-     * @throws IOException If there is a problem while write the data
-     */
-    void write(Series series, IFilter<Episode> filter) throws IOException;
+  /**
+   * Post process the list and prepare the final output
+   * @param series Series that have to be written
+   * @param filter Filter that can be used to filter out the episodes
+   * @throws IOException If there is a problem while write the data
+   */
+  void write(Series series, IFilter<Episode> filter) throws IOException;
 
 }

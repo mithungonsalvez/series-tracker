@@ -12,12 +12,11 @@
  * limitations under the License.
  */
 
-
 package me.mikujo.series;
 
 import me.mikujo.series.utils.Tuple2;
- 
-import java.util.Comparator; 
+
+import java.util.Comparator;
 
 /**
  * Series comparator to compare the tuple2 that contains series and the latest episode which may be null
@@ -25,24 +24,24 @@ import java.util.Comparator;
  */
 public class SeriesComparator implements Comparator<Tuple2<Series, Episode>> {
 
-    @Override
-    public int compare(Tuple2<Series, Episode> o1, Tuple2<Series, Episode> o2) {
-        Episode tEpisode = o1.t2;
-        Episode iEpisode = o2.t2;
-        if (tEpisode == null && iEpisode == null) {
-            return 0;
-        } else if (tEpisode == null) {
-            return 1;
-        } else if (iEpisode == null) {
-            return -1;
-        }
-
-        int result = tEpisode.compareTo(iEpisode);
-        if (result == 0) {
-            return o1.t1.title.compareToIgnoreCase(o2.t1.title);
-        } else {
-            return result;
-        }
+  @Override
+  public int compare(Tuple2<Series, Episode> o1, Tuple2<Series, Episode> o2) {
+    Episode tEpisode = o1.t2;
+    Episode iEpisode = o2.t2;
+    if (tEpisode == null && iEpisode == null) {
+      return 0;
+    } else if (tEpisode == null) {
+      return 1;
+    } else if (iEpisode == null) {
+      return -1;
     }
+
+    int result = tEpisode.compareTo(iEpisode);
+    if (result == 0) {
+      return o1.t1.title.compareToIgnoreCase(o2.t1.title);
+    } else {
+      return result;
+    }
+  }
 
 }

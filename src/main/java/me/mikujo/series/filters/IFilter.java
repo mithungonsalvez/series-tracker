@@ -21,11 +21,11 @@ package me.mikujo.series.filters;
  */
 public interface IFilter<T> {
 
-    /**
-     * Check if a the provided input is allowed as per the filter and returns true, if allowed, else false
-     * @param input Input to be checked
-     * @return true, if the input is allowed as per the filter configuration
-     */
-    boolean allow(T input);
+  /**
+   * Check if a the provided input is allowed as per the filter and returns true, if allowed, else false
+   * @param input Input to be checked
+   * @return true, if the input is allowed as per the filter configuration
+   */
+  boolean allow(T input);
 
 }

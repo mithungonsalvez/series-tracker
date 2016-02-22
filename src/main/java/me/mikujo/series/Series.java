@@ -24,51 +24,51 @@ import java.util.Map;
  */
 public class Series {
 
-    /** URL of the Series */
-    public final String url;
+  /** URL of the Series */
+  public final String url;
 
-    /** Title of the Series */
-    public final String title;
+  /** Title of the Series */
+  public final String title;
 
-    /** Episodes parsed */
-    public final List<List<Episode>> episodes;
+  /** Episodes parsed */
+  public final List<List<Episode>> episodes;
 
-    /**
-     * @param url URL
-     * @param title Title String
-     * @param episodes Episodes parsed
-     */
-    public Series(String url, String title, List<List<Episode>> episodes) {
-        this.url = url;
-        this.title = title;
-        this.episodes = episodes;
-    }
+  /**
+   * @param url URL
+   * @param title Title String
+   * @param episodes Episodes parsed
+   */
+  public Series(String url, String title, List<List<Episode>> episodes) {
+    this.url = url;
+    this.title = title;
+    this.episodes = episodes;
+  }
 
-    /**
-     * Converts the Series object into a Map
-     * @return Map that can be directly serialized
-     */
-    public Map<String, Object> toMap() {
-        Map<String, Object> map = new HashMap<>();
-        map.put("url", url);
-        map.put("title", title);
-        map.put("episodes", episodes);
+  /**
+   * Converts the Series object into a Map
+   * @return Map that can be directly serialized
+   */
+  public Map<String, Object> toMap() {
+    Map<String, Object> map = new HashMap<>();
+    map.put("url", url);
+    map.put("title", title);
+    map.put("episodes", episodes);
 
-        return map;
-    }
+    return map;
+  }
 
-    /**
-     * Converts from a Map to a Series object
-     * @param input JSON data to be converted
-     * @return Series object
-     */
-    public static Series fromMap(Map<String, Object> input) {
-        String url = (String) input.get("url");
-        String title = (String) input.get("title");
-        @SuppressWarnings("unchecked")
-        List<List<Episode>> episodes = (List<List<Episode>>) input.get("episodes");
+  /**
+   * Converts from a Map to a Series object
+   * @param input JSON data to be converted
+   * @return Series object
+   */
+  public static Series fromMap(Map<String, Object> input) {
+    String url = (String) input.get("url");
+    String title = (String) input.get("title");
+    @SuppressWarnings("unchecked")
+    List<List<Episode>> episodes = (List<List<Episode>>) input.get("episodes");
 
-        return new Series(url, title, episodes);
-    }
+    return new Series(url, title, episodes);
+  }
 
 }

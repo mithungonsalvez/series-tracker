@@ -22,15 +22,15 @@ package me.mikujo.series.utils;
  */
 public class Tuple2<T1, T2> {
 
-    /** Value 1 */
-    public final T1 t1;
+  /** Value 1 */
+  public final T1 t1;
 
-    /** Value 2 */
-    public final T2 t2;
+  /** Value 2 */
+  public final T2 t2;
 
-    public Tuple2(T1 t1, T2 t2) {
-        this.t1 = t1;
-        this.t2 = t2;
-    }
+  public Tuple2(T1 t1, T2 t2) {
+    this.t1 = t1;
+    this.t2 = t2;
+  }
 
 }
