@@ -14,8 +14,14 @@
 
 package me.mikujo.series;
 
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 
 /**
  * Main class that starts everything
@@ -29,19 +35,70 @@ public class Main {
    * @throws Exception If something goes wrong
    */
   public static void main(String[] args) throws Exception {
-    // TODO : use a proper command line argument parser
-    Path input = Paths.get(args[0]);
-    Path userConfig = Paths.get(args[1]);
-    Path output = Paths.get(args[2]);
-    Path cacheDir = Paths.get(args[3]);
-    String outputFormat = args[4];
+    // TODO : use a proper command line argument parser someday
+    Path seriesList = null;
+    Path watchedList = null;
+    Path output = null;
+    Path cacheDir = null;
+    String outputFormat = null;
     boolean offline = false;
-    if (args.length > 5) {
-      offline = Boolean.parseBoolean(args[5]);
+    boolean purgecache = false;
+
+    for (int i = 0; i < args.length; i++) {
+      String arg = args[i].toLowerCase();
+      if (arg.equals("-serieslist")) {
+        seriesList = Paths.get(fetch("-seriesList", ++i, args));
+
+      } else if (arg.equals("-watchedlist")) {
+        watchedList = Paths.get(fetch("-watchedList", ++i, args));
+
+      } else if (arg.equals("-output")) {
+        output = Paths.get(fetch("-output", ++i, args));
+
+      } else if (arg.equals("-cachedir")) {
+        cacheDir = Paths.get(fetch("-cacheDir", ++i, args));
+
+      } else if (arg.equals("-outputformat")) {
+        outputFormat = fetch("-outputFormat", ++i, args);
+
+      } else if (arg.equals("-offline")) {
+        offline = true;
+
+      } else if (arg.equals("-purgecache")) {
+        purgecache = true;
+
+      } else {
+        throw new IllegalArgumentException("Unknown argument [" + args[i] + "], all arguments: [" + Arrays.toString(args) + "]");
+      }
     }
 
-    SeriesTracker tracker = new SeriesTracker(input, userConfig, output, cacheDir, outputFormat, offline);
+    // in some cases, we will have to purge the cache, as it may have gotten stale
+    if (purgecache) {
+      System.out.println("Purging cache directory: " + cacheDir);
+      Files.walkFileTree(cacheDir, new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+          Files.delete(dir);
+          return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+          Files.delete(file);
+          return FileVisitResult.CONTINUE;
+        }
+      });
+    }
+
+    SeriesTracker tracker = new SeriesTracker(seriesList, watchedList, output, cacheDir, outputFormat, offline);
     tracker.process();
+  }
+
+  private static String fetch(String key, int nextPos, String[] args) {
+    if (nextPos < args.length) {
+      return args[nextPos];
+    }
+    throw new IllegalArgumentException("Missing value for [" + key + "]");
   }
 
 }

@@ -24,23 +24,50 @@ import org.junit.Test;
  */
 public class MainTest {
 
-    /**
-     * Test of main method, of class Main.
-     * @throws java.lang.Exception
-     */
-    @Test
-    public void testMain() throws Exception {
-        System.out.println("main");
-        String[] args = {
-            "J:/Synked/GoogleDrive/Series/SeriesList.json",
-            "J:/Synked/GoogleDrive/Series/Watched.json",
-            "J:/Synked/GoogleDrive/Series/L4.txt",
-            "J:/Coding/Java/code/SeriesTracker/.cache",
-            "text",
-            "false"
-        };
+  /**
+   * Test of main method, of class Main.
+   * @throws java.lang.Exception
+   */
+  @Test
+  public void testMain() throws Exception {
+    System.out.println("main");
+//        String[] args = {
+//            "J:/Synked/GoogleDrive/Series/SeriesList.json",
+//            "J:/Synked/GoogleDrive/Series/Watched.json",
+//            "J:/Synked/GoogleDrive/Series/L4.txt",
+//            "J:/Coding/Java/code/SeriesTracker/.cache",
+//            "text",
+//            "false"
+//        };
 
-        Main.main(args);
-    }
+//VERSION="1.2"
+//DR_PERSONAL="/media/mc/Personal"
+//
+//SDIR="${DR_PERSONAL}/Synked/GoogleDrive/Series"
+//APP_HOME="${DR_PERSONAL}/Coding/Java/install/SeriesTracker-${VERSION}"
+//OUT_FILE=${SDIR}/L4.txt
+//
+//"${APP_HOME}/bin/SeriesTracker" "${SDIR}/SeriesList.json" "${SDIR}/Watched.json" "${OUT_FILE}" "${APP_HOME}/.cache" text
+
+    String version = "1.2";
+    String personalDir = "/media/mc/Personal";
+    String sDir = personalDir + "/Synked/GoogleDrive/Series";
+    String appHome = personalDir + "/Coding/Java/install/SeriesTracker-" + version;
+
+    String[] args = {
+      "-seriesList",
+      sDir + "/SeriesList.json",
+      "-watchedList",
+      sDir + "/Watched.json",
+      "-output",
+      sDir + "/L4.txt",
+      "-cacheDir",
+      appHome + "/.cache",
+      "-outputformat",
+      "text",
+    };
+
+    Main.main(args);
+  }
 
 }

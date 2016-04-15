@@ -65,29 +65,24 @@ public class SeriesTracker {
 
   /**
    * Series tracker constructor
-   * @param input Input JSON file that specifies the series as well as the format that each series follow
-   * @param userConfig User's input that indicates whether the user has seen the episodes or not
+   * @param seriesList Input JSON file that specifies the series as well as the format that each series follow
+   * @param watchedList User's input that indicates whether the user has seen the episodes or not
    * @param output Output file path
    * @param cacheDir Cache directory
    * @param outputFormat Output format that defines the output format
    * @param offline Use cached data if available, if data is not available, then connect and fetch data
    * @throws IOException If something goes wrong while reading the data
    */
-  public SeriesTracker(Path input, Path userConfig, Path output, Path cacheDir, String outputFormat, boolean offline) throws IOException {
+  public SeriesTracker(Path seriesList, Path watchedList, Path output, Path cacheDir, String outputFormat, boolean offline) throws IOException {
 
-    Map<String, Object> rawData = Utils.readData(input);
-    @SuppressWarnings("unchecked")
-    Map<String, Map<String, Object>> rawFormats = (Map<String, Map<String, Object>>) rawData.get(Keyz.FORMATS);
-
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> allSeries = (List<Map<String, Object>>) rawData.get(Keyz.SERIES);
-
-    @SuppressWarnings("unchecked")
-    Map<String, Map<String, List<String>>> hints = (Map<String, Map<String, List<String>>>) rawData.get(Keyz.HINTS);
+    Map<String, Object> rawData = Utils.readData(seriesList);
+    Map<String, Map<String, Object>> rawFormats = Utils.cast(rawData, Keyz.FORMATS);
+    List<Map<String, Object>> allSeries = Utils.cast(rawData, Keyz.SERIES);
+    Map<String, Map<String, List<String>>> hints = Utils.cast(rawData, Keyz.HINTS);
     // apply the lower-case transformation to each hint value
     hints.values().forEach(hint -> hint.values().forEach(vals -> vals.replaceAll(s -> s.toLowerCase())));
 
-    Map<String, Object> userRawData = Utils.readData(userConfig);
+    Map<String, Object> userRawData = Utils.readData(watchedList);
     Map<String, IFilter<Episode>> filters = Utils.readFilters(userRawData);
 
     this.cacheDir = cacheDir;

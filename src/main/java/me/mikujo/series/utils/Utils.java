@@ -56,14 +56,7 @@ public class Utils {
 
   /** An Allow All filter */
   @SuppressWarnings("rawtypes")
-  public static final IFilter ALLOW_ALL_FILTER = new IFilter<Object>() {
-
-    @Override
-    public boolean allow(Object input) {
-      return true;
-    }
-
-  };
+  public static final IFilter ALLOW_ALL_FILTER = (IFilter<Object>) (input) -> true;
 
   /** Pattern to match season and episode */
   private static final Pattern WATCHED_PATTERN = Pattern.compile("S(\\d+)E(\\d+)", Pattern.CASE_INSENSITIVE);
@@ -274,4 +267,18 @@ public class Utils {
     }
     return value;
   }
+
+  /**
+   * Fetches the value using the key
+   * @param <A> Type of output
+   * @param keyedData Map with all the data
+   * @param key Key to use for fetching the value out of the map
+   * @return Value casted as A
+   */
+  public static <A> A cast(Map<String, Object> keyedData, String key) {
+    @SuppressWarnings("unchecked")
+    A value = (A) keyedData.get(key);
+    return value;
+  }
+
 }
