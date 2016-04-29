@@ -194,6 +194,12 @@ public class WikiParser {
     }
 
     Map<String, Integer> colIdentifiers = getColumnIdentifiers(trTags, hints);
+
+    if (trTags.isEmpty() && colIdentifiers.isEmpty()) {
+      System.err.println("No Episodes found for season [" + season + "] for title [" + title + "]");
+      return null;
+    }
+
     int colTitle = Utils.getOrThrow(colIdentifiers, Keyz.TABLE_COL_TITLE);
     int colDate = Utils.getOrThrow(colIdentifiers, Keyz.TABLE_COL_AIRDATE);
 

@@ -49,7 +49,7 @@ public class MainTest {
 //
 //"${APP_HOME}/bin/SeriesTracker" "${SDIR}/SeriesList.json" "${SDIR}/Watched.json" "${OUT_FILE}" "${APP_HOME}/.cache" text
 
-    String version = "1.3";
+    String version = "1.4";
     String personalDir = "/media/mc/Personal";
     String sDir = personalDir + "/Synked/GoogleDrive/Series";
     String appHome = personalDir + "/Coding/Java/install/SeriesTracker-" + version;
