@@ -26,6 +26,9 @@ public class SeriesComparator implements Comparator<Tuple2<Series, Episode>> {
 
   @Override
   public int compare(Tuple2<Series, Episode> o1, Tuple2<Series, Episode> o2) {
+    if (o1 == null || o2 == null) {
+      return -1;
+    }
     Episode tEpisode = o1.t2;
     Episode iEpisode = o2.t2;
     if (tEpisode == null && iEpisode == null) {

@@ -74,4 +74,6 @@ public interface Keyz {
   /** Key for the setting used to fetch the episode unifier multiplier */
   String SEASON_MULTIPLIER = "unified.episode.season.multiplier";
 
+  String SEASON_SKIP_LIST = "season.skip";
+
 }

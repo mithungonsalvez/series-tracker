@@ -42,7 +42,7 @@ public class Main {
     Path cacheDir = null;
     String outputFormat = null;
     boolean offline = false;
-    boolean purgecache = false;
+    boolean purgeCache = false;
 
     for (int i = 0; i < args.length; i++) {
       String arg = args[i].toLowerCase();
@@ -65,7 +65,7 @@ public class Main {
         offline = true;
 
       } else if (arg.equals("-purgecache")) {
-        purgecache = true;
+        purgeCache = true;
 
       } else {
         throw new IllegalArgumentException("Unknown argument [" + args[i] + "], all arguments: [" + Arrays.toString(args) + "]");
@@ -73,7 +73,7 @@ public class Main {
     }
 
     // in some cases, we will have to purge the cache, as it may have gotten stale
-    if (purgecache) {
+    if (purgeCache) {
       System.out.println("Purging cache directory: " + cacheDir);
       Files.walkFileTree(cacheDir, new SimpleFileVisitor<Path>() {
         @Override

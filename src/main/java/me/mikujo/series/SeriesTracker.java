@@ -28,49 +28,62 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 /**
  * Series tracker class that ties up all the code together
+ *
  * @author mithun.gonsalvez
  */
 public class SeriesTracker {
 
-  /** Output file path */
+  /**
+   * Output file path
+   */
   private final Path output;
 
-  /** Output format */
+  /**
+   * Output format
+   */
   private final String outputFormat;
 
-  /** Formats for all the series */
+  /**
+   * Formats for all the series
+   */
   private final Map<String, Configs> formats;
 
-  /** All the series that have to be processed */
+  /**
+   * All the series that have to be processed
+   */
   private final List<Map<String, Object>> allSeries;
 
-  /** Use cached data if available, if data is not available, then connect and fetch data */
+  /**
+   * Use cached data if available, if data is not available, then connect and fetch data
+   */
   private final boolean offline;
 
-  /** Filters map for each series that we are interested in */
+  /**
+   * Filters map for each series that we are interested in
+   */
   private final Map<String, IFilter<Episode>> filters;
 
-  /** Cache directory */
+  /**
+   * Cache directory
+   */
   private final Path cacheDir;
 
   private final Map<String, Map<String, List<String>>> hints;
 
   /**
    * Series tracker constructor
-   * @param seriesList Input JSON file that specifies the series as well as the format that each series follow
-   * @param watchedList User's input that indicates whether the user has seen the episodes or not
-   * @param output Output file path
-   * @param cacheDir Cache directory
+   *
+   * @param seriesList   Input JSON file that specifies the series as well as the format that each series follow
+   * @param watchedList  User's input that indicates whether the user has seen the episodes or not
+   * @param output       Output file path
+   * @param cacheDir     Cache directory
    * @param outputFormat Output format that defines the output format
-   * @param offline Use cached data if available, if data is not available, then connect and fetch data
+   * @param offline      Use cached data if available, if data is not available, then connect and fetch data
    * @throws IOException If something goes wrong while reading the data
    */
   public SeriesTracker(Path seriesList, Path watchedList, Path output, Path cacheDir, String outputFormat, boolean offline) throws IOException {
@@ -80,7 +93,7 @@ public class SeriesTracker {
     List<Map<String, Object>> allSeries = Utils.cast(rawData, Keyz.SERIES);
     Map<String, Map<String, List<String>>> hints = Utils.cast(rawData, Keyz.HINTS);
     // apply the lower-case transformation to each hint value
-    hints.values().forEach(hint -> hint.values().forEach(vals -> vals.replaceAll(s -> s.toLowerCase())));
+    hints.values().forEach(hint -> hint.values().forEach(vals -> vals.replaceAll(String::toLowerCase)));
 
     Map<String, Object> userRawData = Utils.readData(watchedList);
     Map<String, IFilter<Episode>> filters = Utils.readFilters(userRawData);
@@ -97,6 +110,7 @@ public class SeriesTracker {
 
   /**
    * Start processing
+   *
    * @throws IOException If there is a problem while writing the data
    */
   public void process() throws IOException {
@@ -110,17 +124,13 @@ public class SeriesTracker {
     for (Map<String, Object> rawSeries : this.allSeries) {
       Configs formatDef = getFormatDef(rawSeries, i);
       Map<String, List<String>> tableHints = getTableHints(rawSeries, i);
+      Set<Integer> seasonSkip = getSeasonSkipList(rawSeries);
       Object type = formatDef.get(Keyz.TYPE);
       try {
         if (Keyz.TYPE_WIKI.equals(type)) { // When we add more types here, put a lookup mechanism
           RawInfo rawInfo = new RawInfo(rawSeries, formatDef, tableHints);
-          Series series = WikiParser.parse(rawInfo, wikiDir, this.offline);
-          IFilter<Episode> filter = this.filters.get(series.title);
-          if (filter == null) {
-            // TODO : Log a message
-            filter = Utils.getAllowAllFilter();
-            this.filters.put(series.title, filter);
-          }
+          Series series = WikiParser.parse(rawInfo, wikiDir, seasonSkip, this.offline);
+          IFilter<Episode> filter = this.filters.computeIfAbsent(series.title, k -> Utils.getAllowAllFilter());
 
           this.filters.putIfAbsent(series.title, Utils.getAllowAllFilter());
           Episode episode = Utils.getFirstEpisode(series, filter);
@@ -144,6 +154,20 @@ public class SeriesTracker {
     }
   }
 
+  private Set<Integer> getSeasonSkipList(Map<String, Object> rawSeries) {
+    String rawSeasonSkip = Utils.cast(rawSeries, Keyz.SEASON_SKIP_LIST);
+    if (rawSeasonSkip == null) {
+      return Collections.emptySet();
+    } else {
+      String[] parts = rawSeasonSkip.split(",");
+      Set<Integer> skipList = new HashSet<>();
+      for (String part : parts) {
+        skipList.add(Integer.valueOf(part));
+      }
+      return skipList;
+    }
+  }
+
   private Map<String, List<String>> getTableHints(Map<String, Object> rawSeries, int count) {
     Object hintInfo = rawSeries.get(Keyz.HINTS);
     if (hintInfo == null) {
@@ -156,7 +180,7 @@ public class SeriesTracker {
       return this.hints.get((String) hintInfo);
     } else if (hintInfo instanceof Map) {
       @SuppressWarnings("unchecked") // TODO : find a better way
-      Map<String, List<String>> tableHints = (Map<String, List<String>>) hintInfo;
+          Map<String, List<String>> tableHints = (Map<String, List<String>>) hintInfo;
       return tableHints;
     } else {
       throw new IllegalArgumentException("Unknown type specified for hints [" + hintInfo + "]");
@@ -165,8 +189,9 @@ public class SeriesTracker {
 
   /**
    * Returns the format definition
+   *
    * @param rawSeries Raw Series data
-   * @param count Count
+   * @param count     Count
    * @return Configs for the defined format
    */
   private Configs getFormatDef(Map<String, Object> rawSeries, int count) {
@@ -178,7 +203,7 @@ public class SeriesTracker {
       formatDef = checkGetFormatDef((String) formatId);
     } else if (formatId instanceof Map) {
       @SuppressWarnings("unchecked") // TODO : find a way to determine the types as well
-      Map<String, Object> formatIdMap = (Map<String, Object>) formatId;
+          Map<String, Object> formatIdMap = (Map<String, Object>) formatId;
       formatDef = buildFormatDef(this.formats, count + ":" + System.currentTimeMillis(), formatIdMap);
       Object extId = formatDef.getOptional(Keyz.EXTENDS);
       if (extId != null) {
@@ -194,6 +219,7 @@ public class SeriesTracker {
 
   /**
    * Check and get the format definition
+   *
    * @param formatId Format id
    * @return Format definition
    */
@@ -207,6 +233,7 @@ public class SeriesTracker {
 
   /**
    * Process the formats and resolve all hierarchies
+   *
    * @param formats formats to process
    * @return Map containing the format definitions keyed by its identifier
    */
@@ -231,9 +258,10 @@ public class SeriesTracker {
 
   /**
    * Fetches the Configs from the map, if available, else builds one
+   *
    * @param rFormats Formats map
-   * @param id Id of the format to fetch
-   * @param format Raw format
+   * @param id       Id of the format to fetch
+   * @param format   Raw format
    * @return Format definition, built or retrieved
    */
   private static Configs buildFormatDef(Map<String, Configs> rFormats, String id, Map<String, Object> format) {
@@ -248,6 +276,7 @@ public class SeriesTracker {
 
   /**
    * Build the writer instance
+   *
    * @param format Format type
    * @param writer Writer instance where the data should be written
    * @return Formatter instance
